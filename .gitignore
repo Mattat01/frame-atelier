@@ -1,0 +1,6 @@
+# Runtime data lives in /data on the Home Assistant host, never in the repo.
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+Thumbs.db

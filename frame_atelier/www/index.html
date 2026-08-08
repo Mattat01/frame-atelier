@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Frame Atelier</title>
+<style>
+:root{
+  --bg:#141210;--bg2:#1c1915;--surface:#231f1b;--border:#3a3228;--text:#ede8e0;
+  --muted:#8c7f6e;--accent:#c2703d;--ok:#5a9c60;--danger:#b94040;--radius:6px;
+  --font:system-ui,-apple-system,sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;line-height:1.5}
+header{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:var(--surface);border-bottom:1px solid var(--border);gap:12px;flex-wrap:wrap}
+.logo{font-size:17px;font-weight:600;letter-spacing:-.02em}.logo em{color:var(--accent);font-style:normal}
+.tv-pill{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--muted);background:var(--bg2);border:1px solid var(--border);border-radius:100px;padding:5px 12px;cursor:pointer}
+.tv-pill:hover{border-color:var(--accent)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0;transition:background .3s}
+.dot.on{background:var(--ok)}.dot.err{background:var(--danger)}.dot.busy{background:var(--accent);animation:pulse .9s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+nav{display:flex;background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px}
+.tab{padding:11px 18px;font-size:14px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;user-select:none}
+.tab:hover{color:var(--text)}.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+main{padding:24px;max-width:1160px;margin:0 auto}
+section{display:none}section.active{display:block}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:9px 16px;border-radius:var(--radius);border:1px solid transparent;font:inherit;font-size:14px;font-weight:500;cursor:pointer;white-space:nowrap;transition:opacity .15s}
+.btn:hover{opacity:.85}.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-primary{background:var(--accent);color:#1a0e06}
+.btn-ghost{background:transparent;border-color:var(--border);color:var(--text)}
+.btn-ghost:hover{border-color:var(--accent);opacity:1}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-sm{padding:6px 12px;font-size:13px}
+.field{margin-bottom:18px}.field:last-child{margin-bottom:0}
+.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;letter-spacing:.03em;text-transform:uppercase}
+.field input{width:100%;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:var(--radius);font:inherit;font-size:14px;outline:none}
+.field input:focus{border-color:var(--accent)}
+.field .hint{font-size:12px;color:var(--muted);margin-top:5px;line-height:1.5}
+.field .hint a{color:var(--accent)}
+.img-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.img-card{position:relative;aspect-ratio:16/9;border-radius:var(--radius);overflow:hidden;cursor:pointer;border:2px solid transparent;background:var(--surface)}
+.img-card img{width:100%;height:100%;object-fit:cover;display:block}
+.img-card:hover{border-color:rgba(194,112,61,.5)}
+.img-card.selected{border-color:var(--accent)}
+.img-card .sel-check{position:absolute;top:8px;right:8px;width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;font-size:12px;display:none;align-items:center;justify-content:center;font-weight:700}
+.img-card.selected .sel-check{display:flex}
+.img-card.current{border-color:var(--ok)}
+.img-card .cur-badge{position:absolute;top:8px;left:8px;background:var(--ok);color:#06210a;font-size:10px;font-weight:700;letter-spacing:.03em;padding:3px 8px;border-radius:100px;display:none}
+.img-card.current .cur-badge{display:block}
+.img-card.current .author-tag{display:none}
+/* hero: enlarged current image above the grid */
+.hero{margin-bottom:22px}
+.hero-title{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px}
+.hero-title{text-align:center}
+.hero-frame{position:relative;width:min(520px,100%);margin:0 auto;aspect-ratio:16/9;border-radius:var(--radius);overflow:hidden;background:var(--surface);border:2px solid var(--ok)}
+.hero-frame img{width:100%;height:100%;object-fit:cover;display:block}
+.hero-badge{position:absolute;z-index:2;top:10px;left:10px;background:var(--ok);color:#06210a;font-size:11px;font-weight:700;padding:3px 9px;border-radius:100px}
+.hero-preview-tag{position:absolute;z-index:2;top:10px;right:10px;background:var(--accent);color:#1a0e06;font-size:11px;font-weight:700;padding:3px 9px;border-radius:100px;display:none}
+.hero-matte{position:absolute;z-index:1;inset:0;pointer-events:none;display:none;box-sizing:border-box}
+.img-card .author-tag{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(transparent,rgba(0,0,0,.7));color:#eee;font-size:11px;padding:14px 8px 6px;opacity:0;transition:opacity .15s}
+.img-card:hover .author-tag{opacity:1}.img-card .author-tag a{color:#fff}
+.img-card .placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11px;padding:8px;text-align:center}
+.modal-back{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:200;align-items:center;justify-content:center;padding:20px}
+.modal-back.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;width:min(680px,100%);max-height:90vh;overflow-y:auto}
+.modal img{width:100%;border-radius:var(--radius);margin-bottom:14px;display:block}
+.modal-meta{font-size:13px;color:var(--muted);margin-bottom:18px}.modal-meta a{color:var(--accent)}
+.modal-row{display:flex;gap:10px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:20px}
+.toolbar-count{font-size:13px;color:var(--muted);margin-left:auto}
+.search-row{display:flex;gap:10px;margin-bottom:18px}
+.search-input-wrap{position:relative;flex:1;display:flex}
+.search-row input{flex:1;width:100%;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:9px 36px 9px 14px;border-radius:var(--radius);font:inherit;font-size:15px;outline:none}
+.search-row input:focus{border-color:var(--accent)}
+#searchClear{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);font-size:22px;line-height:1;cursor:pointer;padding:0 4px;display:none}
+#searchClear:hover{color:var(--text)}
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:18px}
+.chip{padding:5px 12px;border:1px solid var(--border);border-radius:100px;font-size:13px;color:var(--muted);cursor:pointer;background:transparent;font:inherit}
+.chip:hover{border-color:var(--accent);color:var(--text)}
+.matte-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
+.matte-btn{padding:6px 14px;border:1px solid var(--border);border-radius:100px;font-size:13px;color:var(--muted);cursor:pointer;background:transparent;font:inherit}
+.matte-btn:hover{border-color:var(--accent);color:var(--text)}
+.matte-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(194,112,61,.08)}
+.sel{background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:var(--radius);font:inherit;font-size:14px;outline:none;text-transform:capitalize}
+.sel:focus{border-color:var(--accent)}
+input[type=range]{accent-color:var(--accent)}
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:800px;align-items:start}
+@media(max-width:640px){.settings-grid{grid-template-columns:1fr}}
+.settings-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+.settings-card h3{font-size:14px;font-weight:600;margin-bottom:16px}
+.scan-row{display:flex;gap:8px;align-items:flex-end}.scan-row .field{flex:1;margin-bottom:0}
+.empty{text-align:center;padding:60px 20px;color:var(--muted)}
+.empty-icon{font-size:44px;margin-bottom:12px}.empty p{line-height:1.7;max-width:360px;margin:0 auto}
+.spin{display:inline-block;width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toasts{position:fixed;bottom:24px;right:24px;display:flex;flex-direction:column;gap:8px;z-index:300;pointer-events:none}
+.toast-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:11px 16px;font-size:14px;max-width:320px;box-shadow:0 4px 24px rgba(0,0,0,.5);pointer-events:auto}
+.toast-item.ok{border-left:3px solid var(--ok)}.toast-item.err{border-left:3px solid var(--danger)}.toast-item.info{border-left:3px solid var(--accent)}
+hr{border:none;border-top:1px solid var(--border);margin:20px 0}
+/* guide / instructions tab */
+.guide{max-width:820px;margin:0 auto;line-height:1.6}
+.guide .lead{color:var(--muted);margin-bottom:20px}
+.guide h2{font-size:18px;margin:26px 0 10px;color:var(--text)}
+.guide h2:first-of-type{margin-top:0}
+.guide h3{font-size:14px;margin:16px 0 4px;color:var(--accent)}
+.guide p,.guide li{color:var(--text);font-size:14px}
+.guide ul{margin:6px 0 6px 20px}
+.guide li{margin:4px 0}
+.guide b{color:var(--text)}
+.guide table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13px}
+.guide th,.guide td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+.guide th{color:var(--muted);font-weight:600}
+.guide code{background:var(--bg2);padding:1px 5px;border-radius:3px;font-size:12px}
+.guide .note{background:var(--surface);border-left:3px solid var(--accent);padding:10px 14px;border-radius:4px;margin:14px 0;font-size:13px;color:var(--text)}
+/* floating multi-select action bar */
+.send-bar{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--border);transform:translateY(120%);transition:transform .2s;z-index:250;box-shadow:0 -4px 24px rgba(0,0,0,.45)}
+.send-bar.show{transform:none}
+.send-bar-inner{max-width:1160px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.sb-count{font-size:13px;color:var(--muted);white-space:nowrap;font-weight:600}
+.sb-strip{display:flex;gap:6px;overflow-x:auto;flex:1;min-width:120px;padding:2px}
+.sb-thumb{position:relative;flex:0 0 auto;width:64px;height:36px;border-radius:3px;overflow:hidden;cursor:pointer;border:2px solid transparent}
+.sb-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.sb-thumb.shownow{border-color:var(--accent)}
+.sb-thumb .eye{position:absolute;inset:auto 0 0 0;font-size:9px;text-align:center;background:var(--accent);color:#1a0e06;font-weight:700;display:none}
+.sb-thumb.shownow .eye{display:block}
+.sb-toggle{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);white-space:nowrap}
+body.sendbar-open #tab-upload{padding-bottom:130px}
+#toTop{position:fixed;right:20px;bottom:24px;width:42px;height:42px;border-radius:50%;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:20px;cursor:pointer;display:none;align-items:center;justify-content:center;z-index:240;box-shadow:0 4px 16px rgba(0,0,0,.4)}
+#toTop:hover{border-color:var(--accent);color:var(--accent)}
+#toTop.show{display:flex}
+body.sendbar-open #toTop{bottom:104px}
+.toggle-row{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin-right:auto}
+#favStar{font-size:18px;line-height:1;padding:9px 12px}
+.chip-nav{padding:6px 10px;font-weight:700}
+.fav-item{display:inline-flex;align-items:center;gap:6px;background:var(--bg2);border:1px solid var(--border);border-radius:100px;padding:4px 6px 4px 12px;font-size:13px;color:var(--text)}
+.fav-item button{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;line-height:1;padding:0 4px}
+.fav-item button:hover{color:var(--danger)}
+details.settings-card summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px}
+details.settings-card summary::-webkit-details-marker{display:none}
+details.settings-card summary::before{content:"▸";color:var(--accent);font-size:12px;transition:transform .15s}
+details.settings-card[open] summary::before{transform:rotate(90deg)}
+details.settings-card summary h3{margin:0}
+details.settings-card .card-body{margin-top:16px}
+.card-sub{font-size:12px;color:var(--muted);margin-left:auto;font-weight:400}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">Frame <em>Atelier</em></div>
+  <div class="tv-pill" onclick="showTab('settings')"><div class="dot" id="tvDot"></div><span id="tvStatusText">Checking…</span></div>
+</header>
+<nav>
+  <div class="tab active" data-tab="library">Library</div>
+  <div class="tab" data-tab="upload">Upload</div>
+  <div class="tab" data-tab="settings">Settings</div>
+  <div class="tab" data-tab="guide">Guide</div>
+</nav>
+<main>
+  <section id="tab-upload">
+    <div class="search-row">
+      <div class="search-input-wrap">
+        <input id="searchInput" type="text" placeholder="Search Unsplash — misty forest, abstract minimal, ocean waves…" autocomplete="off">
+        <button id="searchClear" type="button" aria-label="Clear search" title="Clear">×</button>
+      </div>
+      <button class="btn btn-ghost" id="favStar" type="button" title="Save this search as a favourite">☆</button>
+      <button class="btn btn-primary" id="searchBtn">Search</button>
+    </div>
+    <div class="chips-row" style="display:flex;align-items:center;gap:7px;margin-bottom:18px">
+      <button class="chip chip-nav" id="favPrev" style="display:none" aria-label="Previous favourites">‹</button>
+      <div class="chips" id="suggestions" style="margin-bottom:0;flex:1"></div>
+      <button class="chip chip-nav" id="favNext" style="display:none" aria-label="More favourites">›</button>
+    </div>
+    <div id="uploadGrid" class="img-grid"></div>
+    <div id="loadMoreWrap" style="text-align:center;margin:18px 0;display:none">
+      <span class="spin"></span>
+      <span style="color:var(--muted);font-size:13px;margin-left:6px">Loading more…</span>
+    </div>
+    <div id="uploadEmpty" class="empty"><div class="empty-icon">🖼</div><p>Search above, then click an image to preview and send it to your TV.</p></div>
+  </section>
+
+  <section id="tab-library" class="active">
+    <div class="toolbar">
+      <button class="btn btn-ghost btn-sm" id="libRefreshBtn">Refresh</button>
+      <button class="btn btn-ghost btn-sm" id="libSelectAllBtn">Select all</button>
+      <button class="btn btn-ghost btn-sm" id="libDeselectBtn" style="display:none">Deselect</button>
+      <button class="btn btn-danger btn-sm" id="libDeleteSelBtn" style="display:none">Delete selected (<span id="libSelCount">0</span>)</button>
+      <button class="btn btn-danger btn-sm" id="libDeleteAllBtn">Delete all</button>
+      <span class="toolbar-count" id="libCount"></span>
+    </div>
+    <div class="toolbar" id="libMatteRow" style="margin-top:-8px">
+      <span style="font-size:13px;color:var(--muted)">Matte:</span>
+      <select id="libMatteStyle" class="sel btn-sm" style="padding:6px 10px"></select>
+      <select id="libMatteColor" class="sel btn-sm" style="padding:6px 10px"></select>
+      <button class="btn btn-ghost btn-sm" id="libMatteApplyBtn">Apply to current</button>
+      <span style="font-size:12px;color:var(--muted)">style “none” = full screen</span>
+    </div>
+    <div class="toolbar" id="libFilterRow" style="margin-top:-8px">
+      <span style="font-size:13px;color:var(--muted)">Filter:</span>
+      <select id="libFilter" class="sel btn-sm" style="padding:6px 10px"></select>
+      <button class="btn btn-ghost btn-sm" id="libFilterApplyBtn">Apply to current</button>
+      <span style="font-size:12px;color:var(--muted)">applies to existing images</span>
+    </div>
+    <div class="hero" id="libHero" style="display:none">
+      <div class="hero-title">Currently displayed</div>
+      <div class="hero-frame">
+        <img id="heroImg" alt="">
+        <div class="hero-badge">Current</div>
+        <div class="hero-preview-tag" id="heroPreviewTag">Matte preview</div>
+        <div class="hero-matte" id="heroMatte"></div>
+      </div>
+    </div>
+    <div id="libraryGrid" class="img-grid"></div>
+    <div id="libraryEmpty" class="empty" style="display:none"><div class="empty-icon">📭</div><p>No custom art on the TV yet.</p></div>
+    <div id="libLoading" class="empty" style="display:none"><div class="spin" style="width:32px;height:32px;border-width:3px;margin:0 auto 12px"></div><p>Loading library from TV…</p></div>
+  </section>
+
+  <section id="tab-settings">
+    <div class="settings-grid">
+      <details class="settings-card" id="tvCard">
+        <summary><h3>TV Connection</h3><span class="card-sub" id="tvCardSub"></span></summary>
+        <div class="card-body">
+          <div class="scan-row">
+            <div class="field"><label>TV IP address</label><input id="tvIpInput" type="text" placeholder="e.g. 10.0.0.109" autocomplete="off"></div>
+            <button class="btn btn-ghost btn-sm" id="scanBtn" style="margin-bottom:0">Scan</button>
+          </div>
+          <div class="field hint" style="margin-top:8px">A static IP in your router is recommended. If the TV shows an “Allow connection?” prompt on the first send, accept it once; the pairing token is then saved.</div>
+          <hr>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn btn-primary" id="saveTvBtn">Save</button>
+            <button class="btn btn-ghost" id="testTvBtn">Test reach</button>
+          </div>
+        </div>
+      </details>
+      <details class="settings-card" id="keyCard">
+        <summary><h3>Unsplash API</h3><span class="card-sub" id="keyCardSub"></span></summary>
+        <div class="card-body">
+          <div class="field"><label>Access Key</label><input id="unsplashKeyInput" type="password" placeholder="Paste your key" autocomplete="off">
+            <div class="hint">Free at <a href="https://unsplash.com/developers" target="_blank" rel="noopener">unsplash.com/developers</a> → New Application → copy the <em>Access Key</em>.</div></div>
+          <button class="btn btn-ghost" id="saveKeyBtn">Save key</button>
+        </div>
+      </details>
+
+      <div class="settings-card" style="grid-column:1/-1">
+        <h3>Favourite searches</h3>
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          <input id="favAddInput" type="text" placeholder="Add a search term" class="sel" style="flex:1">
+          <button class="btn btn-ghost btn-sm" id="favAddBtn" style="margin-bottom:0">Add</button>
+        </div>
+        <div id="favList" style="display:flex;flex-wrap:wrap;gap:7px;max-height:170px;overflow-y:auto"></div>
+        <div class="hint" style="margin-top:8px">These show as chips on the Upload tab (15 per page). On the Upload tab, tap the ☆ star to add the current search, or tap the ★ to remove it.</div>
+      </div>
+
+      <div class="settings-card" style="grid-column:1/-1">
+        <h3>Art Mode — Slideshow</h3>
+        <label class="toggle-row" style="margin:0 0 14px 0"><input type="checkbox" id="ssOn"> Auto-rotate through the gallery</label>
+        <div class="scan-row" style="align-items:flex-end;gap:14px;flex-wrap:wrap">
+          <div class="field" style="margin:0">
+            <label>Change every</label>
+            <select id="ssMinutes" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:var(--radius);font:inherit">
+              <option value="1">1 minute</option>
+              <option value="3">3 minutes</option>
+              <option value="5">5 minutes</option>
+              <option value="10" selected>10 minutes</option>
+              <option value="30">30 minutes</option>
+              <option value="60">1 hour</option>
+              <option value="1440">1 day</option>
+            </select>
+          </div>
+          <label class="toggle-row" style="margin:0 0 9px 0"><input type="checkbox" id="ssShuffle" checked> Shuffle (random order)</label>
+        </div>
+        <div class="hint" style="margin-top:8px">Turn off to hold a single image. <strong style="color:var(--text)">Apply</strong> saves the slideshow settings.</div>
+        <div class="scan-row" style="gap:10px;margin-top:12px">
+          <button class="btn btn-primary" id="ssApplyBtn" style="margin-bottom:0">Apply</button>
+          <button class="btn btn-ghost" id="artProbeBtn" style="margin-bottom:0" title="Logs your TV's matte/filter/colour options to the add-on log">Probe TV art settings</button>
+        </div>
+        <hr>
+        <div class="field" style="margin:0">
+          <label>Art Mode brightness — <span id="brightVal">–</span></label>
+          <input type="range" id="brightRange" min="1" max="10" step="1" value="4" style="width:100%">
+        </div>
+        <div class="field" style="margin:14px 0 0 0">
+          <label>Colour temperature (cool ↔ warm) — <span id="ctVal">–</span></label>
+          <input type="range" id="ctRange" min="-5" max="5" step="1" value="0" style="width:100%">
+        </div>
+        <hr>
+        <label class="toggle-row" style="margin-bottom:12px"><input type="checkbox" id="showMatteToggle" checked> Show matte controls (the TV border that crops the photo edges)</label>
+        <label class="toggle-row"><input type="checkbox" id="dbgToggle"> Debug mode — log every TV send &amp; acknowledgement to the add-on Log</label>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-guide">
+    <div class="guide">
+      <p class="lead">Curate Unsplash art onto your Samsung The Frame — search, send, organise, and auto-rotate, all over your local network.</p>
+
+      <h2>Getting started</h2>
+      <ul>
+        <li><b>Settings → TV Connection:</b> enter the TV's IP (or press <b>Scan</b>). A static IP in your router is recommended.</li>
+        <li><b>Settings → Unsplash API:</b> paste a free Access Key from <a href="https://unsplash.com/developers" target="_blank" rel="noopener">unsplash.com/developers</a>.</li>
+        <li>If the TV shows an <b>“Allow connection?”</b> prompt the first time art is sent, accept it. The pairing token is then saved.</li>
+      </ul>
+
+      <h2>Library tab</h2>
+      <p>Everything stored in the TV's <i>My Photos</i> art collection.</p>
+      <ul>
+        <li><b>Current image</b> is shown enlarged at the top (green border) and marked <b>Current</b> in the grid — it follows the slideshow automatically.</li>
+        <li><b>Set as current</b> (hover an image): shows it now if Art Mode is on, or <b>queues</b> it for next Art Mode if you're watching TV — it never interrupts viewing.</li>
+        <li><b>Select &amp; delete:</b> tap to multi-select; delete selected / all to free the TV's art memory.</li>
+        <li><b>Matte</b> (per image, change any time): pick a style + colour → <b>Apply to current / selected</b>. <code>none</code> = full screen. The hero shows a live colour preview.</li>
+        <li><b>Filter</b> (per image): a photo treatment (None / Aqua / ArtDeco / Ink / Wash / Pastel / Feuve) → Apply.</li>
+      </ul>
+
+      <h2>Upload tab</h2>
+      <ul>
+        <li><b>Search Unsplash</b> (the <b>×</b> clears the box). Results <b>load as you scroll</b> — no paging.</li>
+        <li><b>Favourites:</b> tap the <b>☆</b> star to save the current search (★ = saved, tap to remove). Saved searches show as chips (15 per page, use <b>‹ ›</b> for more). Manage them under <b>Settings → Favourite searches</b>. Long terms are shortened with “…” (hover to see the full text).</li>
+        <li><b>Multi-select:</b> tap results to select; selection persists across searches.</li>
+        <li>A <b>floating bar</b> appears with a thumbnail strip — <b>tap one to choose which displays immediately</b>. Toggle <b>Show one now</b> off to just add to the library.</li>
+        <li><b>Send to TV</b> uploads each image full-screen (cropped to 4K) with a progress count. Keep the tab open until it finishes.</li>
+      </ul>
+
+      <h2>Settings tab</h2>
+      <ul>
+        <li><b>Favourite searches:</b> add/remove terms for the Upload chips.</li>
+        <li><b>Slideshow:</b> auto-rotate on/off, interval, <b>Shuffle</b>.</li>
+        <li><b>Brightness</b> &amp; <b>Colour temperature</b>: live, global Art-Mode settings.</li>
+        <li><b>Show matte controls:</b> hide the Library matte row if you don't use mattes.</li>
+        <li><b>Debug mode:</b> logs every TV action to the add-on Log. <b>Probe TV art settings:</b> logs your TV's real options.</li>
+        <li>Press <b>Apply</b> to save the slideshow settings.</li>
+      </ul>
+
+      <h2>How the slideshow behaves</h2>
+      <table>
+        <tr><th>Situation</th><th>Behaviour</th></tr>
+        <tr><td>Watching a live channel</td><td>Ticks are skipped — it won't pull you to art.</td></tr>
+        <tr><td>Set an image (this app) while watching</td><td>Queued silently for next Art Mode.</td></tr>
+        <tr><td>Change image with this app</td><td>Slideshow keeps running.</td></tr>
+        <tr><td>Change image on the TV remote</td><td>Slideshow pauses &amp; unticks itself.</td></tr>
+      </table>
+
+      <h2>Good to know</h2>
+      <ul>
+        <li>A <b>matte crops the photo edges</b> — there's no zoom/scale-to-fit on the TV. Use <code>none</code> for the full image.</li>
+        <li>Mattes &amp; filters are <b>per image</b> and changeable live (no re-upload). Brightness &amp; colour temperature are <b>global</b>.</li>
+        <li>The TV must be awake/reachable. Only Unsplash calls leave your network. Per Unsplash's guidelines, each search result shows the photographer's name &amp; a link to their profile and registers the required download — note the TV itself doesn't display a credit.</li>
+      </ul>
+      <div class="note">Something not working on your TV? Turn on <b>Debug mode</b> in Settings and check the add-on <b>Log</b> tab — it records every action and its result.</div>
+    </div>
+  </section>
+</main>
+
+<div class="modal-back" id="previewModal">
+  <div class="modal">
+    <img id="modalImg" src="" alt="">
+    <div class="modal-meta" id="modalMeta"></div>
+    <div class="modal-row">
+      <label class="toggle-row"><input type="checkbox" id="showNow" checked> Show on TV immediately</label>
+      <button class="btn btn-ghost" id="modalCancelBtn">Cancel</button>
+      <button class="btn btn-primary" id="modalSendBtn">Send to TV</button>
+    </div>
+  </div>
+</div>
+<button id="toTop" title="Back to top" aria-label="Back to top">↑</button>
+<div class="send-bar" id="sendBar">
+  <div class="send-bar-inner">
+    <div class="sb-count"><span id="sbCount">0</span> selected</div>
+    <div class="sb-strip" id="sbStrip" title="Tap a thumbnail to choose which shows on the TV now"></div>
+    <span id="sbWarn" style="display:none;font-size:12px;color:var(--accent);white-space:nowrap">⚠ Keep this tab open until sending finishes</span>
+    <label class="sb-toggle"><input type="checkbox" id="sbShowNow" checked> Show one now</label>
+    <button class="btn btn-ghost btn-sm" id="sbClear">Clear</button>
+    <button class="btn btn-primary btn-sm" id="sbSend">Send to TV</button>
+  </div>
+</div>
+<div class="toasts" id="toastsEl"></div>
+
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+// Relative base so fetches resolve correctly under Home Assistant Ingress.
+const API = (p, o) => fetch('api/' + p, o).then(r => r.json());
+
+function toast(msg, type='info', ms=4500){
+  const el=document.createElement('div');el.className='toast-item '+type;el.textContent=msg;
+  $('#toastsEl').append(el);setTimeout(()=>el.remove(),ms);
+}
+function tvStatus(state,label){$('#tvDot').className='dot'+(state?' '+state:'');$('#tvStatusText').textContent=label;}
+
+let pending=null, libSel=new Set();
+// Favourite search terms (managed by the user, persisted in the add-on config).
+let favourites=[], favsPage=0; const FAV_PAGE=15;
+
+// Matte is a Library option (applied to existing images), so only the Library
+// selectors exist. Uploads always go full-screen (matte 'none').
+let _matteTypes=[], _matteColors=[], _matteRGB={};
+async function loadMattes(){
+  let m;try{m=await API('mattes');}catch{m={};}
+  _matteTypes=(m.types&&m.types.length)?m.types:['none','modern','shadowbox','flexible'];
+  _matteColors=(m.colors&&m.colors.length)?m.colors:['warm','polar','neutral','black'];
+  _matteRGB=m.rgb||{};
+  const opts=arr=>arr.map(v=>`<option value="${v}">${v}</option>`).join('');
+  if($('#libMatteStyle')){
+    $('#libMatteStyle').innerHTML=opts(_matteTypes);
+    $('#libMatteColor').innerHTML=opts(_matteColors);
+    $('#libMatteStyle').value='none';
+    $('#libMatteStyle').onchange=$('#libMatteColor').onchange=previewMatte;
+    previewMatte();
+  }
+}
+function libMatteId(){
+  const st=$('#libMatteStyle').value;
+  return st==='none'?'none':`${st}_${$('#libMatteColor').value}`;
+}
+// Simulate the chosen matte on the hero image: the TV draws the border OVER the
+// photo edges, so we overlay an inset border in the real matte colour.
+function previewMatte(){
+  const st=$('#libMatteStyle').value;
+  $('#libMatteColor').style.display=(st==='none')?'none':'';
+  const ov=$('#heroMatte'), tag=$('#heroPreviewTag');
+  if(!window._curId||$('#libHero').style.display==='none')return;
+  if(st==='none'){ov.style.border='0';ov.style.display='none';}
+  else{
+    const rgb=_matteRGB[$('#libMatteColor').value]||[60,60,60];
+    const thick=(st==='modernthin')?14:(st==='modernwide'?52:30);
+    ov.style.border=`${thick}px solid rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
+    ov.style.display='block';
+  }
+  tag.style.display='block';
+}
+function clearMattePreview(){
+  $('#heroPreviewTag').style.display='none';
+  $('#heroMatte').style.display='none';$('#heroMatte').style.border='0';
+}
+// ── Settings ──
+async function loadConfig(){
+  const c=await API('config');
+  $('#tvIpInput').value=c.tv_ip||'';
+  if(c.has_unsplash_key)$('#unsplashKeyInput').placeholder='•••••••• (saved)';
+  // Collapse the connection/API cards when they're already filled in.
+  $('#tvCard').open=!c.tv_ip;$('#tvCardSub').textContent=c.tv_ip||'not set';
+  $('#keyCard').open=!c.has_unsplash_key;$('#keyCardSub').textContent=c.has_unsplash_key?'saved':'not set';
+  $('#dbgToggle').checked=!!c.debug;
+  $('#ssOn').checked=!!c.ss_on;_lastSsOn=!!c.ss_on;
+  if(c.ss_minutes)$('#ssMinutes').value=c.ss_minutes;
+  $('#ssShuffle').checked=c.ss_shuffle!==false;
+  const showM=c.show_matte!==false;$('#showMatteToggle').checked=showM;applyMatteVisibility(showM);
+  favourites=Array.isArray(c.favourites)?c.favourites:[];favsPage=0;renderChips();renderFavList();updateStar();
+  window._cfgTvIp=c.tv_ip||'';
+  if(c.tv_ip){loadMattes();loadBrightness();loadColorTemp();loadFilters();}
+}
+function applyMatteVisibility(show){
+  const l=$('#libMatteRow');if(l)l.style.display=show?'':'none';
+}
+$('#showMatteToggle').onchange=e=>{
+  applyMatteVisibility(e.target.checked);
+  API('config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({show_matte:e.target.checked})}).catch(()=>{});
+};
+async function loadColorTemp(){
+  try{const r=await API('colortemp');
+    if(typeof r.value!=='undefined'&&r.value!==null){$('#ctRange').value=r.value;$('#ctVal').textContent=r.value;}
+  }catch{}
+}
+let _ctTimer=null;
+$('#ctRange').addEventListener('input',e=>{
+  $('#ctVal').textContent=e.target.value;
+  clearTimeout(_ctTimer);
+  _ctTimer=setTimeout(()=>{
+    API('colortemp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({value:parseInt(e.target.value)})})
+      .then(r=>{if(r&&r.error)toast('Colour temp: '+r.error,'err');}).catch(()=>{});
+  },500);
+});
+async function loadFilters(){
+  let f;try{f=await API('filters');}catch{f={};}
+  const list=(f.filters&&f.filters.length)?f.filters:['None','Aqua','ArtDeco','Ink','Wash','Pastel','Feuve'];
+  $('#libFilter').innerHTML=list.map(x=>`<option value="${x}">${x}</option>`).join('');
+}
+$('#dbgToggle').onchange=e=>{
+  API('config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({debug:e.target.checked})}).catch(()=>{});
+  toast('Debug logging '+(e.target.checked?'on — watch the add-on Log':'off'),'info');
+};
+async function loadBrightness(){
+  try{const r=await API('brightness');
+    if(typeof r.value!=='undefined'&&r.value!==null){
+      $('#brightRange').value=r.value;$('#brightVal').textContent=r.value;
+    }
+  }catch{}
+}
+let _brightTimer=null;
+$('#brightRange').addEventListener('input',e=>{
+  $('#brightVal').textContent=e.target.value;
+  clearTimeout(_brightTimer);
+  _brightTimer=setTimeout(()=>{
+    API('brightness',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({value:parseInt(e.target.value)})})
+      .then(r=>{if(r&&r.error)toast('Brightness: '+r.error,'err');}).catch(()=>{});
+  },500);
+});
+$('#saveTvBtn').onclick=async()=>{
+  const ip=$('#tvIpInput').value.trim();
+  await API('config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tv_ip:ip})});
+  toast('Saved','ok');checkTV();
+  $('#tvCardSub').textContent=ip||'not set';if(ip)$('#tvCard').open=false;
+};
+$('#saveKeyBtn').onclick=async()=>{
+  const k=$('#unsplashKeyInput').value.trim();if(!k)return;
+  await API('config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({unsplash_access_key:k})});
+  $('#unsplashKeyInput').value='';$('#unsplashKeyInput').placeholder='•••••••• (saved)';toast('Key saved','ok');
+  $('#keyCardSub').textContent='saved';$('#keyCard').open=false;
+};
+$('#testTvBtn').onclick=async()=>{
+  const s=await API('tv-status');
+  if(s.reachable)toast('TV reachable'+(s.name?': '+s.name:''),'ok');
+  else toast('TV not reachable — check the IP','err');
+};
+$('#ssApplyBtn').onclick=async()=>{
+  const b=$('#ssApplyBtn');b.disabled=true;b.innerHTML='<span class="spin" style="width:14px;height:14px"></span>';
+  const body={on:$('#ssOn').checked,minutes:parseInt($('#ssMinutes').value),shuffle:$('#ssShuffle').checked};
+  try{const r=await API('slideshow',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(r.error)toast('Slideshow: '+r.error,'err',8000);
+    else{toast(body.on?`Slideshow on · every ${body.minutes} min${body.shuffle?' · shuffled':''}`:'Slideshow off','ok');_lastSsOn=body.on;}
+  }catch{toast('Slideshow request failed','err');}
+  finally{b.disabled=false;b.textContent='Apply';}
+};
+$('#artProbeBtn').onclick=async()=>{
+  const b=$('#artProbeBtn');b.disabled=true;b.innerHTML='<span class="spin" style="width:14px;height:14px"></span>';
+  try{await API('art-info');toast('Probed — check the add-on Log tab for matte/filter options','info',7000);}
+  catch{toast('Probe failed','err');}
+  finally{b.disabled=false;b.textContent='Probe TV art settings';}
+};
+$('#scanBtn').onclick=async()=>{
+  const b=$('#scanBtn');b.disabled=true;b.innerHTML='<span class="spin" style="width:14px;height:14px"></span>';
+  try{const r=await API('scan');
+    if(r.ip){$('#tvIpInput').value=r.ip;toast('Found TV at '+r.ip+(r.name?' ('+r.name+')':''),'ok');}
+    else toast('No TV found on common subnets — enter the IP manually','info');
+  }catch{toast('Scan failed','err');}finally{b.disabled=false;b.textContent='Scan';}
+};
+async function checkTV(){
+  const s=await API('tv-status');
+  if(s.reachable)tvStatus('on',s.name?'Connected · '+s.name:'TV reachable');
+  else if(s.reason==='no_ip')tvStatus('','Set TV IP in Settings');
+  else tvStatus('err','TV unreachable');
+  const sub=$('#tvCardSub');const ip=$('#tvIpInput').value.trim();
+  if(sub)sub.textContent=!ip?'not set':(s.reachable?ip+' · connected':ip+' · unreachable');
+}
+
+// ── Upload ──
+$('#searchBtn').onclick=doSearch;
+$('#searchInput').onkeydown=e=>{if(e.key==='Enter')doSearch();};
+function toggleSearchClear(){$('#searchClear').style.display=$('#searchInput').value?'block':'none';}
+$('#searchInput').addEventListener('input',()=>{toggleSearchClear();updateStar();});
+$('#searchClear').onclick=()=>{$('#searchInput').value='';toggleSearchClear();updateStar();$('#searchInput').focus();};
+
+// ── Favourite searches ──
+function isFav(t){t=t.trim().toLowerCase();return favourites.some(f=>f.toLowerCase()===t);}
+function updateStar(){
+  const t=$('#searchInput').value.trim(), star=$('#favStar'), on=!!t&&isFav(t);
+  star.textContent=on?'★':'☆';
+  star.style.color=on?'var(--accent)':'';
+  star.title=on?'Remove from favourites':'Save this search as a favourite';
+}
+// Display long favourites truncated (full text kept for the search + tooltip).
+function truncFav(s){return s.length>30?s.slice(0,30)+'…':s;}
+function renderChips(){
+  const el=$('#suggestions');el.innerHTML='';
+  const start=favsPage*FAV_PAGE;
+  favourites.slice(start,start+FAV_PAGE).forEach(s=>{
+    const b=document.createElement('button');b.className='chip';b.textContent=truncFav(s);b.title=s;
+    b.onclick=()=>{$('#searchInput').value=s;toggleSearchClear();updateStar();doSearch();};
+    el.appendChild(b);
+  });
+  $('#favPrev').style.display=favsPage>0?'':'none';
+  $('#favNext').style.display=(start+FAV_PAGE<favourites.length)?'':'none';
+}
+function renderFavList(){
+  const el=$('#favList');el.innerHTML='';
+  if(!favourites.length){el.innerHTML='<span style="color:var(--muted);font-size:13px">No favourites yet — star a search on the Upload tab.</span>';return;}
+  favourites.forEach(f=>{
+    const item=document.createElement('span');item.className='fav-item';item.title=f;
+    item.innerHTML=`<span></span><button title="Remove" aria-label="Remove">×</button>`;
+    item.firstChild.textContent=truncFav(f);
+    item.querySelector('button').onclick=()=>{favourites=favourites.filter(x=>x!==f);saveFavourites();};
+    el.appendChild(item);
+  });
+}
+function saveFavourites(){
+  API('config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({favourites})}).catch(()=>{});
+  const maxPage=Math.max(0,Math.ceil(favourites.length/FAV_PAGE)-1);
+  if(favsPage>maxPage)favsPage=maxPage;
+  renderChips();renderFavList();updateStar();
+}
+$('#favStar').onclick=()=>{
+  const t=$('#searchInput').value.trim();if(!t)return;
+  if(isFav(t))favourites=favourites.filter(f=>f.toLowerCase()!==t.toLowerCase());
+  else{favourites.unshift(t);favsPage=0;}
+  saveFavourites();
+};
+$('#favPrev').onclick=()=>{if(favsPage>0){favsPage--;renderChips();}};
+$('#favNext').onclick=()=>{if((favsPage+1)*FAV_PAGE<favourites.length){favsPage++;renderChips();}};
+$('#favAddBtn').onclick=()=>{
+  const t=$('#favAddInput').value.trim();if(!t)return;
+  if(!isFav(t)){favourites.unshift(t);favsPage=0;saveFavourites();}
+  $('#favAddInput').value='';
+};
+$('#favAddInput').onkeydown=e=>{if(e.key==='Enter')$('#favAddBtn').onclick();};
+let _searchQ='',_searchPage=0,_searchTotal=1,_searchLoading=false;
+async function doSearch(){
+  const q=$('#searchInput').value.trim();if(!q)return;
+  _searchQ=q;_searchPage=0;_searchTotal=1;
+  $('#uploadGrid').innerHTML='';$('#uploadEmpty').style.display='none';$('#loadMoreWrap').style.display='none';
+  await fetchSearchPage(true);
+}
+async function fetchSearchPage(isFirst){
+  if(_searchLoading)return;
+  if(!isFirst && _searchPage>=_searchTotal)return;
+  _searchLoading=true;
+  const btn=$('#searchBtn');let old;
+  if(isFirst){old=btn.textContent;btn.disabled=true;btn.innerHTML='<span class="spin"></span>';}
+  else $('#loadMoreWrap').style.display='';
+  try{
+    const r=await API(`search?q=${encodeURIComponent(_searchQ)}&page=${_searchPage+1}`);
+    if(r.error){toast(r.error,'err');if(r.error.includes('Access Key'))showTab('settings');if(isFirst)$('#uploadEmpty').style.display='';return;}
+    _searchPage=r.page||(_searchPage+1);_searchTotal=r.total_pages||1;
+    appendUpload(r.results||[]);
+    if(isFirst&&!(r.results&&r.results.length))$('#uploadEmpty').style.display='';
+    $('#loadMoreWrap').style.display=(_searchPage<_searchTotal)?'':'none';
+  }catch(e){toast('Search failed','err');if(isFirst)$('#uploadEmpty').style.display='';}
+  finally{_searchLoading=false;if(isFirst){btn.disabled=false;btn.textContent=old;}}
+}
+// Infinite scroll: load the next page when the loader sentinel nears the viewport.
+new IntersectionObserver(es=>{if(es.some(e=>e.isIntersecting))fetchSearchPage(false);},
+  {rootMargin:'300px'}).observe($('#loadMoreWrap'));
+
+// Back-to-top button.
+const _toTop=$('#toTop');
+function _scrollPos(){return window.scrollY||document.documentElement.scrollTop||document.body.scrollTop||0;}
+function _onScroll(){_toTop.classList.toggle('show',_scrollPos()>400);}
+window.addEventListener('scroll',_onScroll,{passive:true});
+document.addEventListener('scroll',_onScroll,{passive:true,capture:true});
+_toTop.onclick=()=>{
+  try{window.scrollTo({top:0,behavior:'smooth'});}catch{window.scrollTo(0,0);}
+  document.documentElement.scrollTop=0;document.body.scrollTop=0;
+};
+function appendUpload(photos){
+  const g=$('#uploadGrid');
+  photos.forEach(p=>{
+    const c=document.createElement('div');c.className='img-card'+(uploadSel.has(p.id)?' selected':'');c.dataset.id=p.id;
+    c.innerHTML=`<img src="${p.thumb}" loading="lazy" alt=""><div class="sel-check">✓</div><div class="author-tag">by <a href="${p.author_url}?utm_source=frame_atelier&utm_medium=referral" target="_blank" rel="noopener" onclick="event.stopPropagation()">${p.author}</a></div>`;
+    c.onclick=()=>toggleUploadSel(p,c);g.appendChild(c);
+  });
+}
+
+// ── Unsplash multi-select + floating send bar ──
+const uploadSel=new Map(); let showFirstId=null;
+function toggleUploadSel(p){
+  const has=uploadSel.has(p.id);
+  if(has)uploadSel.delete(p.id);else uploadSel.set(p.id,p);
+  // Sync every on-screen copy of this image (the same photo can recur across pages).
+  document.querySelectorAll(`#uploadGrid .img-card[data-id="${p.id}"]`).forEach(c=>c.classList.toggle('selected',!has));
+  if(!uploadSel.has(showFirstId))showFirstId=uploadSel.size?uploadSel.keys().next().value:null;
+  renderSendBar();
+}
+function renderSendBar(){
+  const n=uploadSel.size;
+  document.body.classList.toggle('sendbar-open',n>0);
+  $('#sendBar').classList.toggle('show',n>0);
+  $('#sbCount').textContent=n;
+  const showOn=$('#sbShowNow').checked;
+  const strip=$('#sbStrip');strip.innerHTML='';
+  uploadSel.forEach(p=>{
+    const t=document.createElement('div');t.className='sb-thumb'+((showOn&&p.id===showFirstId)?' shownow':'');
+    t.innerHTML=`<img src="${p.thumb}" alt=""><span class="eye">shows</span>`;
+    t.onclick=()=>{showFirstId=p.id;$('#sbShowNow').checked=true;renderSendBar();};
+    strip.appendChild(t);
+  });
+}
+$('#sbShowNow').onchange=renderSendBar;
+function clearUploadSel(){
+  uploadSel.clear();showFirstId=null;
+  document.querySelectorAll('#uploadGrid .img-card.selected').forEach(c=>c.classList.remove('selected'));
+  renderSendBar();
+}
+$('#sbClear').onclick=clearUploadSel;
+$('#sbSend').onclick=async()=>{
+  const items=[...uploadSel.values()];if(!items.length)return;
+  const btn=$('#sbSend');btn.disabled=true;$('#sbClear').disabled=true;$('#sbWarn').style.display='';
+  const idToCid={};let ok=0,done=0;
+  for(const p of items){
+    btn.textContent=`Sending ${++done}/${items.length}…`;
+    try{const r=await API('upload',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({url:p.full,matte:'none',set_first:false,download_location:p.download_location})});
+      if(r.error)toast('Failed: '+r.error,'err',7000);
+      else if(r.content_id){idToCid[p.id]=r.content_id;ok++;}
+    }catch{toast('Upload failed for one image','err');}
+  }
+  if($('#sbShowNow').checked&&showFirstId&&idToCid[showFirstId]){
+    try{await API('select',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content_id:idToCid[showFirstId]})});}catch{}
+  }
+  toast(ok?`Sent ${ok} image${ok!==1?'s':''} to the TV`:'Nothing sent','ok');
+  btn.disabled=false;$('#sbClear').disabled=false;$('#sbWarn').style.display='none';btn.textContent='Send to TV';
+  clearUploadSel();
+};
+function openPreview(p){
+  pending=p;$('#modalImg').src=p.thumb;
+  $('#modalMeta').innerHTML=`Photo by <a href="${p.author_url}?utm_source=frame_atelier&utm_medium=referral" target="_blank" rel="noopener">${p.author}</a> on Unsplash`;
+  $('#previewModal').classList.add('open');
+}
+function closeModal(){$('#previewModal').classList.remove('open');pending=null;}
+$('#modalCancelBtn').onclick=closeModal;
+$('#previewModal').onclick=e=>{if(e.target.id==='previewModal')closeModal();};
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+$('#modalSendBtn').onclick=async()=>{
+  if(!pending)return;const btn=$('#modalSendBtn');btn.disabled=true;btn.innerHTML='<span class="spin"></span> Sending…';
+  const body={url:pending.full,matte:'none',set_first:$('#showNow').checked,download_location:pending.download_location};
+  try{
+    const r=await API('upload',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(r.error)toast(r.error,'err',8000);else{toast('Sent to TV!','ok');closeModal();}
+  }catch(e){toast('Upload failed','err');}
+  finally{btn.disabled=false;btn.textContent='Send to TV';}
+};
+
+// ── Library ──
+$('#libRefreshBtn').onclick=loadLibrary;
+$('#libSelectAllBtn').onclick=()=>{document.querySelectorAll('#libraryGrid .img-card').forEach(c=>{libSel.add(c.dataset.id);c.classList.add('selected');});updateLibBar();};
+$('#libDeselectBtn').onclick=()=>{libSel.clear();document.querySelectorAll('#libraryGrid .img-card').forEach(c=>c.classList.remove('selected'));updateLibBar();};
+$('#libDeleteSelBtn').onclick=()=>{const ids=[...libSel];if(ids.length&&confirm(`Delete ${ids.length} image(s) from the TV?`))doDelete(ids);};
+$('#libDeleteAllBtn').onclick=()=>{const cards=document.querySelectorAll('#libraryGrid .img-card');if(!cards.length){toast('Library already empty','info');return;}if(confirm(`Delete all ${cards.length} images? This cannot be undone.`))doDelete([...cards].map(c=>c.dataset.id));};
+$('#libMatteApplyBtn').onclick=async()=>{
+  const ids=libSel.size?[...libSel]:(window._curId?[window._curId]:[]);
+  if(!ids.length){toast('No image selected and none is currently displayed','info');return;}
+  const matte=libMatteId();
+  const b=$('#libMatteApplyBtn');const lbl=b.textContent;b.disabled=true;b.innerHTML='<span class="spin" style="width:14px;height:14px"></span>';
+  try{const r=await API('matte',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids,matte})});
+    if(r.error)toast('Matte: '+r.error,'err',7000);
+    else{
+      toast(`Matte ${matte} applied to ${r.count} image${r.count!==1?'s':''}`,'ok');
+      clearMattePreview();
+      // Thumbnails change with the matte — refresh affected ones (cache was cleared server-side).
+      ids.forEach(id=>{const im=document.querySelector(`#libraryGrid .img-card[data-id="${id}"] img`);if(im)im.src='api/thumbnail/'+encodeURIComponent(id)+'?t='+Date.now();});
+      if(window._curId&&ids.includes(window._curId))$('#heroImg').src='api/thumbnail/'+encodeURIComponent(window._curId)+'?t='+Date.now();
+    }
+  }catch{toast('Matte request failed','err');}
+  finally{b.disabled=false;b.textContent=lbl;}
+};
+$('#libFilterApplyBtn').onclick=async()=>{
+  const ids=libSel.size?[...libSel]:(window._curId?[window._curId]:[]);
+  if(!ids.length){toast('No image selected and none is currently displayed','info');return;}
+  const filter=$('#libFilter').value;
+  const b=$('#libFilterApplyBtn');const lbl=b.textContent;b.disabled=true;b.innerHTML='<span class="spin" style="width:14px;height:14px"></span>';
+  try{const r=await API('filter',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids,filter})});
+    if(r.error)toast('Filter: '+r.error,'err',7000);
+    else{
+      toast(`Filter ${filter} applied to ${r.count} image${r.count!==1?'s':''}`,'ok');
+      ids.forEach(id=>{const im=document.querySelector(`#libraryGrid .img-card[data-id="${id}"] img`);if(im)im.src='api/thumbnail/'+encodeURIComponent(id)+'?t='+Date.now();});
+      if(window._curId&&ids.includes(window._curId))$('#heroImg').src='api/thumbnail/'+encodeURIComponent(window._curId)+'?t='+Date.now();
+    }
+  }catch{toast('Filter request failed','err');}
+  finally{b.disabled=false;b.textContent=lbl;}
+};
+function updateLibActionLabels(){
+  const t=libSel.size?'Apply to selected':'Apply to current';
+  const m=$('#libMatteApplyBtn');if(m)m.textContent=t;
+  const f=$('#libFilterApplyBtn');if(f)f.textContent=t;
+}
+function updateLibBar(){const n=libSel.size;$('#libSelectAllBtn').style.display=n?'none':'';$('#libDeselectBtn').style.display=n?'':'none';$('#libDeleteSelBtn').style.display=n?'':'none';$('#libSelCount').textContent=n;updateLibActionLabels();}
+async function loadLibrary(){
+  $('#libraryGrid').innerHTML='';$('#libraryEmpty').style.display='none';$('#libLoading').style.display='';
+  libSel.clear();updateLibBar();$('#libCount').textContent='';
+  let r;try{r=await API('library');}catch{r={error:'Request failed'};}
+  if(r.error){$('#libLoading').style.display='none';toast('Library: '+r.error,'err');return;}
+  const items=r.items||[];
+  if(!items.length){$('#libLoading').style.display='none';$('#libraryEmpty').style.display='';return;}
+  $('#libCount').textContent=`${items.length} image${items.length!==1?'s':''}`;
+  const ids=items.map(it=>it.content_id);
+  const current=r.current;
+  window._curId=current;
+  clearMattePreview();
+  if(current){$('#libHero').style.display='';$('#heroImg').src='api/thumbnail/'+encodeURIComponent(current)+'?t='+Date.now();}
+  else $('#libHero').style.display='none';
+
+  // Warm the thumbnail cache in one TV connection (first load only; cached after).
+  $('#libLoading').querySelector('p').textContent='Fetching thumbnails from TV…';
+  let warm={};try{warm=await API('thumbnails',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids})});}catch{}
+  const failed=new Set(warm.failed||[]);
+  $('#libLoading').style.display='none';
+
+  // Now render — thumbnails are cached, so these load instantly and in parallel.
+  const g=$('#libraryGrid');
+  items.forEach(it=>{
+    const id=it.content_id;
+    const c=document.createElement('div');c.className='img-card'+(id===current?' current':'');c.dataset.id=id;
+    const inner=failed.has(id)
+      ? `<div class="placeholder">${id}</div>`
+      : `<img src="api/thumbnail/${encodeURIComponent(id)}" loading="lazy" alt="${id}">`;
+    // Button is always present; CSS hides it on the .current card (so it restores automatically).
+    c.innerHTML=`${inner}<div class="sel-check">✓</div><div class="cur-badge">Current</div><div class="author-tag"><button class="btn btn-primary btn-sm setcur">Set as current</button></div>`;
+    c.querySelector('.setcur').onclick=e=>{e.stopPropagation();setCurrent(id,e.currentTarget);};
+    c.onclick=()=>toggleSel(id);g.appendChild(c);
+  });
+}
+// Move the "Current" marker (hero + green border) to the given id without a reload.
+function applyCurrentMarker(id){
+  window._curId=id;
+  document.querySelectorAll('#libraryGrid .img-card.current').forEach(c=>c.classList.remove('current'));
+  if(id){
+    document.querySelector(`#libraryGrid .img-card[data-id="${id}"]`)?.classList.add('current');
+    $('#libHero').style.display='';
+    $('#heroImg').src='api/thumbnail/'+encodeURIComponent(id)+'?t='+Date.now();
+  }else{$('#libHero').style.display='none';}
+}
+// Poll so the marker follows the slideshow and the Settings toggle reflects an
+// auto-pause (e.g. when the image was changed on the TV).
+let _lastSsOn=null;
+async function pollCurrent(){
+  if($('#heroPreviewTag').style.display==='block')return; // don't disturb a live matte preview
+  try{const r=await API('current');if(!r)return;
+    if(typeof r.ss_on!=='undefined'){
+      $('#ssOn').checked=!!r.ss_on;
+      if(_lastSsOn===true&&r.ss_on===false)toast('Slideshow paused — image was changed on the TV','info',6000);
+      _lastSsOn=!!r.ss_on;
+    }
+    if(r.current&&r.current!==window._curId&&$('#tab-library').classList.contains('active'))applyCurrentMarker(r.current);
+  }catch{}
+}
+// One unified poll loop. Skips work that isn't needed to keep traffic low:
+//  • nothing runs while the tab is hidden;
+//  • /api/current only when the slideshow is on or the Library tab is showing;
+//  • /api/tv-status (the only call that touches the TV) just once a minute.
+let _pollTick=0;
+async function pollLoop(){
+  if(document.hidden)return;
+  if(_pollTick++ % 4 === 0)checkTV();                 // ~every 60s
+  if(_lastSsOn || $('#tab-library').classList.contains('active'))await pollCurrent();
+}
+setInterval(pollLoop,15000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)pollLoop();});
+async function setCurrent(id,btn){
+  if(btn){btn.disabled=true;btn.textContent='Setting…';}
+  try{const r=await API('select',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content_id:id})});
+    if(r.error)toast('Set current: '+r.error,'err');
+    else{toast(r.shown===false?'Set — will appear when Art Mode is next on':'Now showing '+id+' on the TV','ok');clearMattePreview();applyCurrentMarker(id);}
+  }catch{toast('Request failed','err');}
+  finally{if(btn){btn.disabled=false;btn.textContent='Set as current';}}
+}
+function toggleSel(id){
+  if(libSel.has(id))libSel.delete(id);else libSel.add(id);
+  document.querySelectorAll(`#libraryGrid .img-card[data-id="${id}"]`).forEach(c=>c.classList.toggle('selected',libSel.has(id)));
+  updateLibBar();
+}
+async function doDelete(ids){
+  const r=await API('delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids})});
+  if(r.error){toast('Delete failed: '+r.error,'err');return;}
+  ids.forEach(id=>{document.querySelector(`#libraryGrid .img-card[data-id="${id}"]`)?.remove();libSel.delete(id);});
+  updateLibBar();
+  const left=document.querySelectorAll('#libraryGrid .img-card').length;
+  $('#libCount').textContent=left?`${left} image${left!==1?'s':''}`:'';
+  if(!left)$('#libraryEmpty').style.display='';
+  toast(`Deleted ${ids.length} image${ids.length!==1?'s':''}`,'ok');
+}
+
+// ── Tabs ──
+function showTab(name){
+  document.querySelectorAll('nav .tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===name));
+  document.querySelectorAll('main section').forEach(s=>s.classList.toggle('active',s.id==='tab-'+name));
+  if(name==='library')loadLibrary();
+}
+document.querySelectorAll('nav .tab').forEach(t=>t.onclick=()=>showTab(t.dataset.tab));
+
+loadConfig().then(()=>{checkTV();if(window._cfgTvIp)loadLibrary();});
+</script>
+</body>
+</html>

@@ -2,7 +2,7 @@ name: Frame Atelier
 version: "1.0.0"
 slug: frame_atelier
 description: Curate Unsplash art onto a Samsung The Frame TV's Art Mode — no Art Store subscription
-url: https://github.com/GH_USERNAME/frame-atelier-addon
+url: https://github.com/Mattat01/frame-atelier
 arch:
   - aarch64
   - amd64
